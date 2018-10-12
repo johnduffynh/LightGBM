@@ -97,7 +97,7 @@ std::string GBDT::ModelToIfElse(int num_iteration) const {
   pred_str_buf << "\t\t\t\t" << "return;" << '\n';
   pred_str_buf << "\t\t\t" << "early_stop_round_counter = 0;" << '\n';
   pred_str_buf << "\t\t" << "}" << '\n';
-  pred_str_buf << "\t" << "}" << '\n';
+  pred_str_buf << "\t" << "}" << '\n'; 
 
   str_buf << "void GBDT::PredictRaw(const double* features, double *output, const PredictionEarlyStopInstance* early_stop) const {" << '\n';
   str_buf << pred_str_buf.str();
@@ -149,7 +149,7 @@ std::string GBDT::ModelToIfElse(int num_iteration) const {
   str_buf << "}" << '\n';
   str_buf << '\n';
 
-  // PredictByMap
+// PredictByMap
   str_buf << "void GBDT::PredictByMap(const std::unordered_map<int, double>& features, double* output, const PredictionEarlyStopInstance* early_stop) const {" << '\n';
   str_buf << "\t" << "PredictRawByMap(features, output, early_stop);" << '\n';
   str_buf << "\t" << "if (average_output_) {" << '\n';
@@ -167,7 +167,7 @@ std::string GBDT::ModelToIfElse(int num_iteration) const {
   // PredictLeafIndex
   for (int i = 0; i < num_used_model; ++i) {
     str_buf << models_[i]->ToIfElse(i, true) << '\n';
-  }
+}
 
   str_buf << "double (*PredictTreeLeafPtr[])(const double*) = { ";
   for (int i = 0; i < num_used_model; ++i) {
@@ -334,8 +334,12 @@ bool GBDT::LoadModelFromString(const char* buffer, size_t len) {
   while (p < end) {
     auto line_len = Common::GetLine(p);
     std::string cur_line(p, line_len);
-    if (line_len > 0) {
-      if (!Common::StartsWith(cur_line, "Tree=")) {
+    if (line_len > 0) 
+	 {
+		if( Common::StartsWith(cur_line, "end of trees") ){
+			Log::Fatal("no trees in model file" );
+		}		 
+      else if (!Common::StartsWith(cur_line, "Tree=")) {
         auto strs = Common::Split(cur_line.c_str(), '=');
         if (strs.size() == 1) {
           key_vals[strs[0]] = "";
@@ -523,6 +527,50 @@ std::vector<double> GBDT::FeatureImportance(int num_iteration, int importance_ty
     Log::Fatal("Unknown importance type: only support split=0 and gain=1");
   }
   return feature_importances;
+}
+using std::endl;
+void GBDT::MyModelToIfElse( const std::string& namespaceDisplay, std::ostream& os )const
+{
+	os << "#include \"stdafx.h\"" << endl
+		<< "#include \"Models.h\"" << endl;
+	os << "namespace " << namespaceDisplay << endl << "{" << endl;
+
+	const auto modelCount = static_cast<int>( models_.size() );
+	os << "\tconstexpr size_t TreeCount = " << modelCount << ";" << endl;
+	os << "\tconstexpr size_t FeatureCount = " << max_feature_idx_ + 1 << ";" << endl;
+	os << "\tstd::unique_ptr<Tree> Tree::_pInstance{};" << endl;
+//	os << "\tconstexpr array<string_view,FeatureCount> Features = {" 
+//		<< '"' << Common::Join( feature_names_, "\",\"" ) << "\"};" << endl << endl;
+
+	os << "\tTree::Tree()noexcept:" << endl
+		<< "\t\tTreeBase<" << max_feature_idx_ + 1 << ">{ {\""<< Common::Join( feature_names_, "\"sv,\"" ) <<"\"} }" << endl
+		<<	"\t{}" << endl;
+
+	for( int i = 0; i < modelCount; ++i )
+		os << models_[i]->ToIfElse(i, false);
+
+	os << "\tconstexpr double (*PredictTreePtr[])(const double*) = { ";
+	for (int i = 0; i < modelCount; ++i) 
+	{
+		if (i > 0)
+			os << " , ";
+		os << "PredictTree" << i;
+  	}
+	os << " };" << endl << endl;
+	os << "\tconstexpr double PredictRaw( const double* pFeatures )noexcept" << endl
+		<< "\t{" << endl
+		<< "\t\tdouble output = 0.0;" << endl
+		<< "\t\tfor( size_t i = 0; i < TreeCount; ++i )" << endl
+		<< "\t\t\toutput += (*PredictTreePtr[i])( pFeatures );" << endl
+		<< "\t\treturn output;" << endl
+		<< "\t}"  << endl;
+
+	os << "\tdouble Tree::Predict( const double* pFeatures )noexcept" << endl
+		<< "\t{" << endl
+		<< "\t\treturn PredictRaw( pFeatures );"  << endl
+		<< "\t}" << endl;
+
+	os << "}";
 }
 
 }  // namespace LightGBM

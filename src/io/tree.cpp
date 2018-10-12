@@ -354,15 +354,16 @@ std::string Tree::CategoricalDecisionIfElse(int node) const {
 
 std::string Tree::ToIfElse(int index, bool predict_leaf_index) const {
   std::stringstream str_buf;
-  str_buf << "double PredictTree" << index;
+  str_buf << "\tconstexpr double PredictTree" << index;
   if (predict_leaf_index) {
     str_buf << "Leaf";
   }
-  str_buf << "(const double* arr) { ";
-  if (num_leaves_ <= 1) {
+  str_buf << "(const double* arr)noexcept { ";
+  if (num_leaves_ <= 1) 
     str_buf << "return " << leaf_value_[0] << ";";
-  } else {
-    str_buf << "const std::vector<uint32_t> cat_threshold = {";
+  else 
+  {
+  /*  str_buf << "const std::vector<uint32_t> cat_threshold = {";
     for (size_t i = 0; i < cat_threshold_.size(); ++i) {
       if (i != 0) {
         str_buf << ",";
@@ -370,17 +371,17 @@ std::string Tree::ToIfElse(int index, bool predict_leaf_index) const {
       str_buf << cat_threshold_[i];
     }
     str_buf << "};";
+	 */
     // use this for the missing value conversion
-    str_buf << "double fval = 0.0f; ";
-    if (num_cat_ > 0) {
-      str_buf << "int int_fval = 0; ";
-    }
-    str_buf << NodeToIfElse(0, predict_leaf_index);
+	str_buf << "double ";//fval = 0.0f; ";
+	if (num_cat_ > 0)
+		str_buf << "int int_fval = 0; ";
+	str_buf << NodeToIfElse( 0, predict_leaf_index );
   }
   str_buf << " }" << '\n';
 
   //Predict func by Map to ifelse
-  str_buf << "double PredictTree" << index;
+/*  str_buf << "double PredictTree" << index;
   if (predict_leaf_index) {
     str_buf << "LeafByMap";
   } else {
@@ -406,7 +407,7 @@ std::string Tree::ToIfElse(int index, bool predict_leaf_index) const {
     str_buf << NodeToIfElseByMap(0, predict_leaf_index);
   }
   str_buf << " }" << '\n';
-
+*/
   return str_buf.str();
 }
 

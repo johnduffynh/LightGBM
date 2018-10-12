@@ -202,7 +202,7 @@ Tree* SerialTreeLearner::Train(const score_t* gradients, const score_t *hessians
     const SplitInfo& best_leaf_SplitInfo = best_split_per_leaf_[best_leaf];
     // cannot split, quit
     if (best_leaf_SplitInfo.gain <= 0.0) {
-      Log::Warning("No further splits with positive gain, best gain: %f", best_leaf_SplitInfo.gain);
+      Log::Debug("No further splits with positive gain, best gain: %f", best_leaf_SplitInfo.gain);//No further splits with positive gain, best gain: -inf
       break;
     }
     #ifdef TIMETAG

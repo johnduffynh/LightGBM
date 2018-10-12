@@ -231,6 +231,8 @@ public:
   */
   bool SaveModelToIfElse(int num_iteration, const char* filename) const override;
 
+  void MyModelToIfElse( const std::string& namespaceDisplay, std::ostream& str_buf )const override;
+
   /*!
   * \brief Save model to file
   * \param num_iterations Number of model that want to save, -1 means save all

@@ -183,6 +183,7 @@ public:
   */
   virtual bool SaveModelToIfElse(int num_iteration, const char* filename) const = 0;
 
+  virtual void MyModelToIfElse( const std::string& namespaceDisplay, std::ostream& str_buf )const = 0;
   /*!
   * \brief Save model to file
   * \param num_iterations Number of model that want to save, -1 means save all
